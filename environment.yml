@@ -79,4 +79,4 @@ dependencies:
     - wrapt==1.14.1
     - yfinance==0.1.70
     - zipp==3.8.0
-prefix: /Users/anthonylaw/anaconda3/envs/gym_trade
+prefix: ~/anaconda3/envs/gym_trade
