@@ -473,7 +473,7 @@ for ep in range(total_episodes):
     #     target_critic.save_weights("weights/best_door_target_critic.h5")
     #     best_avg_reward = avg_reward
     avg_reward_list.append(avg_reward)
-    epsilon = np.exp((total_episodes - ep)/1000.0)/np.exp(total_episodes/1000.0)
+    epsilon = epsilon * np.exp((total_episodes - ep)/1000.0)/np.exp(total_episodes/1000.0)
     print("EPSILON: ", epsilon)
 # Plotting graph
 # Episodes versus Avg. Rewards
