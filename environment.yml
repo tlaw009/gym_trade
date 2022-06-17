@@ -53,16 +53,16 @@ dependencies:
   - pyopenssl=22.0.0
   - pysocks=1.7.1
   - python=3.8.13
-  - pytorch=1.11.0
-  - pytorch-mutex=1.0
+  # - pytorch=1.11.0
+  # - pytorch-mutex=1.0
   - readline=8.1.2
   - requests=2.27.1
   - setuptools=58.0.4
   - six=1.16.0
   - sqlite=3.38.2
   - tk=8.6.11
-  - torchaudio=0.11.0
-  - torchvision=0.12.0
+  # - torchaudio=0.11.0
+  # - torchvision=0.12.0
   - typing_extensions=4.1.1
   - urllib3=1.26.9
   - wheel=0.37.1
@@ -126,3 +126,9 @@ dependencies:
     - yfinance==0.1.70
     - zipp==3.8.0
 prefix: /home/tony/miniconda3/envs/gym_trade
+
+
+
+# conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+
+
