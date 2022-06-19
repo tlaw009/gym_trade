@@ -82,25 +82,25 @@ class TRADEEnv(gym.Env, utils.EzPickle):
 
     def _next_observation(self):
         if self.look_back:
-            obs= np.concatenate((self.data.to_numpy()[self.env_step_index][0].flatten(),
-                                        self.data.to_numpy()[self.env_step_index][0].flatten() - self.data.to_numpy()[self.env_step_index-1][0].flatten(),
-                                        self.data.to_numpy()[self.env_step_index][5].flatten()/1000,
-                                        self.aux_data.to_numpy()[self.env_step_index][0].flatten(),
+            obs= np.concatenate((self.data.to_numpy()[self.env_step_index][0].flatten()/1000.0,
+                                        self.data.to_numpy()[self.env_step_index][0].flatten()/1000.0 - self.data.to_numpy()[self.env_step_index-1][0].flatten()/1000.0,
+                                        self.data.to_numpy()[self.env_step_index][5].flatten()/1000000.0,
+                                        self.aux_data.to_numpy()[self.env_step_index][0].flatten()/1000.0,
                                         # np.delete(self.data.to_numpy()[self.env_step_index-5: self.env_step_index-1], 4, 1).flatten(),
                                         # np.delete(self.aux_data.to_numpy()[self.env_step_index-5: self.env_step_index-1], 4, 1).flatten(),
                                         # padding(self.ticker.balance_sheet.to_numpy(), 26, 5),
-                                        np.array([[self.net_worth, self.balance, self.shares_held, self.cost_basis]]).flatten()), axis=None)
+                                        np.array([[self.net_worth/1000000.0, self.balance/1000000.0, self.shares_held/1000000.0, self.cost_basis/1000000.0]]).flatten()), axis=None)
             # print(obs.flatten())
             return obs.flatten()
         else:
-            obs = np.concatenate((self.ticker.history(period="1d", interval="1m").to_numpy()[-1,0].flatten(),
-                                        self.ticker.history(period="1d", interval="1m").to_numpy()[-1,0].flatten() - self.ticker.history(period="1d", interval="1m").to_numpy()[-2,0].flatten(),
-                                        self.ticker.history(period="1d", interval="1m").to_numpy()[-2,4].flatten()/1000,
-                                        yf.Ticker("^VIX").history(period="5d", interval="1d").to_numpy()[-1,0].flatten(),
+            obs = np.concatenate((self.ticker.history(period="1d", interval="1m").to_numpy()[-1,0].flatten()/1000.0,
+                                        self.ticker.history(period="1d", interval="1m").to_numpy()[-1,0].flatten()/1000.0 - self.ticker.history(period="1d", interval="1m").to_numpy()[-2,0].flatten()/1000.0,
+                                        self.ticker.history(period="1d", interval="1m").to_numpy()[-2,4].flatten()/1000000,
+                                        yf.Ticker("^VIX").history(period="5d", interval="1d").to_numpy()[-1,0].flatten()/1000.0,
                                         # np.delete(self.ticker.history(period="5d", interval="1d").to_numpy(), [-2,-1], 1).flatten(),
                                         # np.delete(yf.Ticker("^VIX").history(period="5d", interval="1d").to_numpy(), [-2,-1], 1).flatten(),
                                         # padding(self.ticker.balance_sheet.to_numpy(), 26, 5),
-                                        np.array([[self.net_worth, self.balance, self.shares_held, self.cost_basis]]).flatten()), axis = None)
+                                        np.array([[self.net_worth/1000000.0, self.balance/1000000.0, self.shares_held/1000000.0, self.cost_basis/1000000.0]]).flatten()), axis = None)
             return obs.flatten()
 
 
@@ -112,7 +112,7 @@ class TRADEEnv(gym.Env, utils.EzPickle):
             current_price = self.ticker.history(period="1d", interval="1m").to_numpy()[-1,0]
         amount = np.abs(action)
         action_cost = 0
-        if action > 0.25:
+        if action > 0.05:
             # Buy amount % of balance in shares
             total_possible = int(self.balance / (current_price*(1+self.c_r)))
             shares_bought = int(total_possible * amount)
@@ -125,7 +125,7 @@ class TRADEEnv(gym.Env, utils.EzPickle):
                 self.cost_basis = (prev_cost + additional_cost) / (self.shares_held + shares_bought)
             self.shares_held += shares_bought
 
-        elif action < -0.25:
+        elif action < -0.05:
             # Sell amount % of shares held
             shares_sold = int(self.shares_held * amount)
             self.balance += shares_sold * current_price

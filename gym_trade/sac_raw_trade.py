@@ -303,7 +303,7 @@ class Actor(Model):
         super().__init__()
         self.action_dim = num_actions
         self.dense1_layer = layers.Dense(64, activation="relu")
-        self.dense2_layer = layers.Dense(64, activation="tanh")
+        self.dense2_layer = layers.Dense(64, activation="relu")
         self.mean_layer = layers.Dense(self.action_dim)
         self.stdev_layer = layers.Dense(self.action_dim)
 
