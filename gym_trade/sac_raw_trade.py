@@ -302,8 +302,8 @@ class Actor(Model):
     def __init__(self):
         super().__init__()
         self.action_dim = num_actions
-        self.dense1_layer = layers.Dense(64, activation="tanh")
-        self.dense2_layer = layers.Dense(64, activation="relu")
+        self.dense1_layer = layers.Dense(64, activation="relu")
+        self.dense2_layer = layers.Dense(64, activation="tanh")
         self.mean_layer = layers.Dense(self.action_dim)
         self.stdev_layer = layers.Dense(self.action_dim)
 
@@ -542,7 +542,7 @@ while t_steps < 1000000:
         while True:
             # Uncomment this to see the Actor in action
             # But not in a python notebook.
-            # env.render()
+            env.render()
 
             tf_prev_state = tf.expand_dims(tf.convert_to_tensor(prev_state), 0)
 

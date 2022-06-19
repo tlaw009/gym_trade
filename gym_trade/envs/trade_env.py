@@ -112,7 +112,7 @@ class TRADEEnv(gym.Env, utils.EzPickle):
             current_price = self.ticker.history(period="1d", interval="1m").to_numpy()[-1,0]
         amount = np.abs(action)
         action_cost = 0
-        if action > 0.5:
+        if action > 0.25:
             # Buy amount % of balance in shares
             total_possible = int(self.balance / (current_price*(1+self.c_r)))
             shares_bought = int(total_possible * amount)
@@ -125,7 +125,7 @@ class TRADEEnv(gym.Env, utils.EzPickle):
                 self.cost_basis = (prev_cost + additional_cost) / (self.shares_held + shares_bought)
             self.shares_held += shares_bought
 
-        elif action < -0.5:
+        elif action < -0.25:
             # Sell amount % of shares held
             shares_sold = int(self.shares_held * amount)
             self.balance += shares_sold * current_price
@@ -155,7 +155,7 @@ class TRADEEnv(gym.Env, utils.EzPickle):
             if self.env_step_index == self.env_step_end_index:
                 self.done = True
 
-        reward = (self.net_worth - INITIAL_ACCOUNT_BALANCE)/100000
+        reward = (self.net_worth - INITIAL_ACCOUNT_BALANCE)
 
         if not self.done and self.net_worth <= 0:
             self.done = True
