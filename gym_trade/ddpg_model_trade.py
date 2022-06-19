@@ -80,7 +80,7 @@ num_actions = env.action_space.shape[0]
 print("Size of Action Space ->  {}".format(num_actions))
 
 upper_bound = 1.0
-lower_bound = 0.0
+lower_bound = -1.0
 
 print("Max Value of Action ->  {}".format(upper_bound))
 print("Min Value of Action ->  {}".format(lower_bound))

@@ -53,7 +53,7 @@ class TRADEEnv(gym.Env, utils.EzPickle):
                 self.env_step_index = 1
                 self.env_step_end_index = len(self.data.to_numpy())-1
         else:
-            print("No valid period input received, real time environment is initialized")
+            print("No valid period input received, real time environment is initialized", flush=True)
 
 
         # [[buy, sell, hold], [% of balance, % of shares, meaningless stuff]]
@@ -112,7 +112,7 @@ class TRADEEnv(gym.Env, utils.EzPickle):
             current_price = self.ticker.history(period="1d", interval="1m").to_numpy()[-1,0]
         amount = np.abs(action)
         action_cost = 0
-        if action > 0.01:
+        if action > 0.5:
             # Buy amount % of balance in shares
             total_possible = int(self.balance / (current_price*(1+self.c_r)))
             shares_bought = int(total_possible * amount)
@@ -125,7 +125,7 @@ class TRADEEnv(gym.Env, utils.EzPickle):
                 self.cost_basis = (prev_cost + additional_cost) / (self.shares_held + shares_bought)
             self.shares_held += shares_bought
 
-        elif action < -0.01:
+        elif action < -0.5:
             # Sell amount % of shares held
             shares_sold = int(self.shares_held * amount)
             self.balance += shares_sold * current_price
@@ -168,14 +168,14 @@ class TRADEEnv(gym.Env, utils.EzPickle):
         # Render the environment to the screen
         profit = self.net_worth - INITIAL_ACCOUNT_BALANCE
 
-        print(f'Balance: {self.balance}')
+        print(f'Balance: {self.balance}', flush=True)
         print(
-            f'Shares held: {self.shares_held} (Total sold: {self.total_shares_sold})')
+            f'Shares held: {self.shares_held} (Total sold: {self.total_shares_sold})', flush=True)
         print(
-            f'Avg cost for held shares: {self.cost_basis} (Total sales value: {self.total_sales_value})')
+            f'Avg cost for held shares: {self.cost_basis} (Total sales value: {self.total_sales_value})', flush=True)
         print(
-            f'Net worth: {self.net_worth} (Max net worth: {self.max_net_worth})')
-        print(f'Profit: {profit}')
+            f'Net worth: {self.net_worth} (Max net worth: {self.max_net_worth})', flush=True)
+        print(f'Profit: {profit}', flush=True)
 
 # def local_test():
 #     env = TRADEEnv("MSFT")
