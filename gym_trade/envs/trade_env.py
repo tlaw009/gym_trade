@@ -155,7 +155,7 @@ class TRADEEnv(gym.Env, utils.EzPickle):
             if self.env_step_index == self.env_step_end_index:
                 self.done = True
 
-        reward = (self.net_worth - INITIAL_ACCOUNT_BALANCE)
+        reward = (self.net_worth - INITIAL_ACCOUNT_BALANCE)/1000000000
 
         if not self.done and self.net_worth <= 0:
             self.done = True
