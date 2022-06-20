@@ -9,7 +9,7 @@ from stable_baselines3 import PPO
 env = TRADEEnv("MSFT","2000-01-01", "2016-01-01", 0.00)
 
 model = PPO("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=200000)
+model.learn(total_timesteps=1000000)
 
 # model = PPO("MlpPolicy", env, verbose=1)
 # print("training started")
