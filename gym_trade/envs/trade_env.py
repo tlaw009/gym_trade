@@ -42,6 +42,8 @@ class TRADEEnv(gym.Env, utils.EzPickle):
         self.ticker = yf.Ticker(ticker_name)
         self.done = False
         self.c_r = commission_rate
+        self.total_possible = 0
+        # self.loss_lower_bound = -100
         self.look_back = False
         if not start == None and not end == None:
             if self.r.match(start) and self.r.match(end):
@@ -73,9 +75,11 @@ class TRADEEnv(gym.Env, utils.EzPickle):
         self.cost_basis = 0
         self.total_shares_sold = 0
         self.total_sales_value = 0
+        self.total_possible = 0
         if self.look_back:
             self.env_step_index = 1
         self.done = False
+        # self.loss_lower_bound = -100
 
         # print("env reset")
         return self._next_observation()
@@ -93,10 +97,10 @@ class TRADEEnv(gym.Env, utils.EzPickle):
             # print(obs.flatten())
             return obs.flatten()
         else:
-            obs = np.concatenate((self.ticker.history(period="1d", interval="1m").to_numpy()[-1,0].flatten()/1000.0,
-                                        self.ticker.history(period="1d", interval="1m").to_numpy()[-1,0].flatten()/1000.0 - self.ticker.history(period="1d", interval="1m").to_numpy()[-2,0].flatten()/1000.0,
-                                        self.ticker.history(period="1d", interval="1m").to_numpy()[-2,4].flatten()/1000000,
-                                        yf.Ticker("^VIX").history(period="5d", interval="1d").to_numpy()[-1,0].flatten()/1000.0,
+            obs = np.concatenate((self.ticker.history(period="1d", interval="1m").to_numpy()[-2,0].flatten()/1000.0,
+                                        self.ticker.history(period="1d", interval="1m").to_numpy()[-2,0].flatten()/1000.0 - self.ticker.history(period="1d", interval="1m").to_numpy()[-3,0].flatten()/1000.0,
+                                        self.ticker.history(period="1d", interval="1m").to_numpy()[-3,4].flatten()/1000000,
+                                        yf.Ticker("^VIX").history(period="5d", interval="1d").to_numpy()[-2,0].flatten()/1000.0,
                                         # np.delete(self.ticker.history(period="5d", interval="1d").to_numpy(), [-2,-1], 1).flatten(),
                                         # np.delete(yf.Ticker("^VIX").history(period="5d", interval="1d").to_numpy(), [-2,-1], 1).flatten(),
                                         # padding(self.ticker.balance_sheet.to_numpy(), 26, 5),
@@ -108,14 +112,16 @@ class TRADEEnv(gym.Env, utils.EzPickle):
         # Set the current price to a random price within the time step
         if self.look_back:
             current_price = self.data.to_numpy()[self.env_step_index][0]
+            next_price = self.data.to_numpy()[self.env_step_index+1][0]
         else:
-            current_price = self.ticker.history(period="1d", interval="1m").to_numpy()[-1,0]
+            current_price = self.ticker.history(period="1d", interval="1m").to_numpy()[-2,0]
+            next_price = self.ticker.history(period="1d", interval="1m").to_numpy()[-1,0]
+        self.total_possible = int(self.balance / (current_price*(1+self.c_r)))
         amount = np.abs(action)
         action_cost = 0
-        if action > 0.01:
+        if action > 0.0:
             # Buy amount % of balance in shares
-            total_possible = int(self.balance / (current_price*(1+self.c_r)))
-            shares_bought = int(total_possible * amount)
+            shares_bought = int(self.total_possible * amount)
             prev_cost = self.cost_basis * self.shares_held
             additional_cost = shares_bought * current_price
             action_cost = additional_cost*self.c_r
@@ -125,7 +131,17 @@ class TRADEEnv(gym.Env, utils.EzPickle):
                 self.cost_basis = (prev_cost + additional_cost) / (self.shares_held + shares_bought)
             self.shares_held += shares_bought
 
-        elif action < -0.01:
+            if shares_bought < 1:
+                if next_price > current_price:
+                    gain = (self.shares_held - self.total_possible)*(next_price-current_price)
+                else:
+                    gain = self.shares_held*(next_price-current_price)
+            else:
+                gain = (shares_bought - self.total_possible + self.shares_held)*(next_price-current_price)
+
+
+
+        elif action < 0.0:
             # Sell amount % of shares held
             shares_sold = int(self.shares_held * amount)
             self.balance += shares_sold * current_price
@@ -133,6 +149,22 @@ class TRADEEnv(gym.Env, utils.EzPickle):
             self.total_shares_sold += shares_sold
             self.total_sales_value += shares_sold * current_price
             action_cost = (shares_sold* current_price)*self.c_r
+
+            if shares_sold < 1:    
+                if next_price > current_price:
+                    gain = (self.shares_held - self.total_possible)*(next_price-current_price)
+                else:
+                    gain = self.shares_held*(next_price-current_price)
+            else:
+                gain = (shares_sold - self.shares_held + self.total_possible)*(current_price-next_price)
+
+        else:
+            if next_price > current_price:
+                gain = (self.shares_held - self.total_possible)*(next_price-current_price)
+            else:
+                gain = self.shares_held*(next_price-current_price)
+
+
         #     print("gained: ", shares_sold* current_price)
         # print("Commission fee: ", action_cost)
         self.balance = self.balance - action_cost
@@ -144,19 +176,25 @@ class TRADEEnv(gym.Env, utils.EzPickle):
         if self.shares_held == 0:
             self.cost_basis = 0
 
+        return gain
 
 
     def step(self, action):
         # Execute one time step within the environment
-        self._take_action(action)
+        gain = self._take_action(action)
+
         if self.look_back:
             if not self.done:
                 self.env_step_index = self.env_step_index + 1
-            if self.env_step_index == self.env_step_end_index:
+            if self.env_step_index == self.env_step_end_index - 1:
                 self.done = True
 
-        reward = (self.net_worth - INITIAL_ACCOUNT_BALANCE)/100000
+        reward = gain
 
+        # if reward < self.loss_lower_bound:
+        #     self.loss_lower_bound = reward
+
+        # print(reward)
         if not self.done and self.net_worth <= 0:
             self.done = True
 

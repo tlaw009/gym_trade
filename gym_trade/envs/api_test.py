@@ -43,7 +43,7 @@ def padding(array, xx, yy):
 # print(msft.balance_sheet.to_numpy().shape
 #     )
 try:
-    data1 = yf.download("MSFT", start = "2013-01-01", end = "2018-02-21", group_by = "ticker")
+    data1 = yf.download("WISA", start = "2019-01-01", end = "2022-02-21", group_by = "ticker")
 except:
     raise Exception("download fail, dates invalid")
 
