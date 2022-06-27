@@ -14,7 +14,7 @@ import re
 # MAX_NUM_SHARES = 2147483647
 MAX_STEPS = 20000
 INITIAL_ACCOUNT_BALANCE = 200000
-
+TICKER_LIST['AAPL', 'MSFT', 'AMZN', 'GOOGL']
 
 # def padding(array, xx, yy):
 #     """
@@ -37,9 +37,10 @@ INITIAL_ACCOUNT_BALANCE = 200000
 
 
 class TRADEEnv(gym.Env, utils.EzPickle):
-    def __init__(self,ticker_name, start=None, end=None, commission_rate = 0.00):
+    def __init__(self,start=None, end=None, commission_rate = 0.00):
         self.r = re.compile('\d{4}-\d{2}-\d{2}')
-        self.ticker = yf.Ticker(ticker_name)
+        # self.ticker = yf.Ticker(ticker_name)
+        self.tickers = [yf.Ticker(tk) for tk in TICKER_LIST]
         self.done = False
         self.c_r = commission_rate
         self.total_possible = 0
@@ -48,19 +49,18 @@ class TRADEEnv(gym.Env, utils.EzPickle):
         if not start == None and not end == None:
             if self.r.match(start) and self.r.match(end):
                 self.look_back = True
-                self.data = yf.download(ticker_name, start = start, end = end, group_by = "ticker")
+                # self.data = yf.download(ticker_name, start = start, end = end, group_by = "ticker")
+                self.data = [yf.download(tk, start = start, end = end, group_by = "ticker") for tk in TICKER_LIST]
                 self.aux_data = yf.download("^VIX", start = start, end = end, group_by = "ticker")
-                if len(self.data.to_numpy()) < 30:
-                    raise ValueError("period too short, please select period of sufficient length")
                 self.env_step_index = 1
-                self.env_step_end_index = len(self.data.to_numpy())-1
+                self.env_step_end_index = len(self.data[0].to_numpy())-1
         else:
             print("No valid period input received, real time environment is initialized", flush=True)
 
 
         # [[buy, sell, hold], [% of balance, % of shares, meaningless stuff]]
         self.action_space = spaces.Box(
-        low=np.array([-1]), high=np.array([1]), dtype=np.float32)
+        low=np.array([-1 for tk in TICKER_LIST]), high=np.array([1 for tk in TICKER_LIST]), dtype=np.float32)
 
 
         self.observation_space = spaces.Box(
@@ -90,10 +90,8 @@ class TRADEEnv(gym.Env, utils.EzPickle):
                                         self.data.to_numpy()[self.env_step_index][0].flatten()/1000.0 - self.data.to_numpy()[self.env_step_index-1][0].flatten()/1000.0,
                                         self.data.to_numpy()[self.env_step_index][5].flatten()/1000000.0,
                                         self.aux_data.to_numpy()[self.env_step_index][0].flatten()/1000.0,
-                                        # np.delete(self.data.to_numpy()[self.env_step_index-5: self.env_step_index-1], 4, 1).flatten(),
-                                        # np.delete(self.aux_data.to_numpy()[self.env_step_index-5: self.env_step_index-1], 4, 1).flatten(),
-                                        # padding(self.ticker.balance_sheet.to_numpy(), 26, 5),
-                                        np.array([[self.net_worth/1000000.0, self.balance/1000000.0, self.shares_held/1000000.0, self.cost_basis/1000000.0]]).flatten()), axis=None)
+                                        self.aux_data.to_numpy()[self.env_step_index][0].flatten()/1000.0 - self.aux_data.to_numpy()[self.env_step_index-1][0].flatten()/1000.0,
+                                        np.array([[self.balance/1000000.0, self.shares_held/1000000.0, self.cost_basis/1000000.0]]).flatten()), axis=None)
             # print(obs.flatten())
             return obs.flatten()
         else:
@@ -101,10 +99,8 @@ class TRADEEnv(gym.Env, utils.EzPickle):
                                         self.ticker.history(period="1d", interval="1m").to_numpy()[-2,0].flatten()/1000.0 - self.ticker.history(period="1d", interval="1m").to_numpy()[-3,0].flatten()/1000.0,
                                         self.ticker.history(period="1d", interval="1m").to_numpy()[-3,4].flatten()/1000000,
                                         yf.Ticker("^VIX").history(period="5d", interval="1d").to_numpy()[-2,0].flatten()/1000.0,
-                                        # np.delete(self.ticker.history(period="5d", interval="1d").to_numpy(), [-2,-1], 1).flatten(),
-                                        # np.delete(yf.Ticker("^VIX").history(period="5d", interval="1d").to_numpy(), [-2,-1], 1).flatten(),
-                                        # padding(self.ticker.balance_sheet.to_numpy(), 26, 5),
-                                        np.array([[self.net_worth/1000000.0, self.balance/1000000.0, self.shares_held/1000000.0, self.cost_basis/1000000.0]]).flatten()), axis = None)
+                                        yf.Ticker("^VIX").history(period="1d", interval="1m").to_numpy()[-2,0].flatten()/1000.0 - yf.Ticker("^VIX").history(period="1d", interval="1m").to_numpy()[-3,0].flatten()/1000.0,
+                                        np.array([[self.balance/1000000.0, self.shares_held/1000000.0, self.cost_basis/1000000.0]]).flatten()), axis = None)
             return obs.flatten()
 
 
